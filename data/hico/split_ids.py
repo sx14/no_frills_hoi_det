@@ -59,4 +59,7 @@ def main():
 
 
 if __name__=='__main__':
+    # 数据集分成train-val-test
+    # val的图像数等于原train的20%
+    # 保存splits
     main()

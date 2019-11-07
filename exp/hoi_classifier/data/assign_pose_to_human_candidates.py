@@ -29,6 +29,8 @@ def assign_pose(human_box,pose_boxes,pose_keypoints,num_keypoints):
     for i, pose_box in enumerate(pose_boxes):
         iou,intersection,union = compute_iou(human_box,pose_box,True)
         pose_area = compute_area(pose_box)
+        # 交集面积 / pose box面积 > 0.7
+        # 注意；这里并不是交并比
         frac_inside = intersection / pose_area
         if frac_inside > max_frac_inside:
             max_frac_inside = frac_inside
@@ -46,16 +48,19 @@ def assign_pose(human_box,pose_boxes,pose_keypoints,num_keypoints):
 def main(exp_const,data_const):
     print(f'Reading split_ids.json ...')
     split_ids = io.load_json_object(data_const.split_ids_json)
-
+    # 建立candidate human pose hdf5数据库文件
     print(f'Creating a human_candidates_pose_{exp_const.subset}.hdf5 file ...')
     human_cand_pose_hdf5 = os.path.join(
         exp_const.exp_dir,f'human_candidates_pose_{exp_const.subset}.hdf5')
     human_cand_pose = h5py.File(human_cand_pose_hdf5,'w')
-
+    # 加载candidates
     print(f'Reading hoi_candidates_{exp_const.subset}.hdf5 file ...')
     hoi_cand = h5py.File(data_const.hoi_cand_hdf5,'r')
     count_assignments = 0
     for global_id in tqdm(split_ids[exp_const.subset]):
+        # 对每张图
+        # 加载human boxes
+        # 加载human RPN_id (当前图中唯一索引)
         boxes_scores_rpn_ids_hoi_idx = \
             hoi_cand[global_id]['boxes_scores_rpn_ids_hoi_idx']
         human_boxes = boxes_scores_rpn_ids_hoi_idx[:,:4]
@@ -69,12 +74,15 @@ def main(exp_const,data_const):
         pose_json = os.path.join(
             data_const.human_pose_dir,
             f'{pose_prefix}{global_id}_keypoints.json')
-        
+
+        # 当前图中所有human pose
+        # 并为每个human pose提取box
         human_poses = [
             np.reshape(np.array(pose['pose_keypoints_2d']),(-1,3)) 
             for pose in io.load_json_object(pose_json)['people']]
         pose_boxes = [get_pose_box(pose) for pose in human_poses]
 
+        # 为每个human box尝试分配pose
         rpn_id_to_pose = {}
         for i in range(num_cand):
             rpn_id = str(int(human_rpn_ids[i]))
@@ -89,6 +97,7 @@ def main(exp_const,data_const):
                 if match_status:
                     count_assignments += 1
 
+        # image id + rpn id 来索引pose
         human_cand_pose.create_group(global_id)
         for rpn_id, pose in rpn_id_to_pose.items():
             human_cand_pose[global_id].create_dataset(rpn_id,data=pose)

@@ -11,11 +11,12 @@ def exp_detect_coco_objects_in_hico():
     exp_const = ExpConstants(exp_name=exp_name)
     
     data_const = HicoConstants()
-
+    # 打包待faster-rcnn测试的所有图像路径，以及检测结果输出位置
     prepare_data_for_faster_rcnn.prepare_hico(exp_const,data_const)
 
 
 def exp_select_and_evaluate_confident_boxes_in_hico():
+    # 从原始的300/图的检测结果中，挑选一部分来构造训练数据
     exp_name = 'select_confident_boxes_in_hico'
     exp_const = ExpConstants(exp_name=exp_name)
     exp_const.background_score_thresh = 0.01

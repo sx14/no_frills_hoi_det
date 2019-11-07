@@ -24,6 +24,9 @@ class HoiCandidatesGenerator():
         start_end_ids = np.zeros([len(self.hoi_classes),2],dtype=np.int32)
         start_id = 0
         for hoi_id, hoi_info in self.hoi_classes.items():
+            # 对于每一个HOI类别
+            # 全组合当前图片的所有human和当前HOI类别的object
+            # 注意：这里不考虑是否命中，只依据类别是否一致
             dets = self.predict_hoi(selected_dets,hoi_info)
             pred_hoi_dets.append(dets)
             hoi_idx = int(hoi_id)-1
@@ -33,6 +36,9 @@ class HoiCandidatesGenerator():
         return pred_hoi_dets, start_end_ids
 
     def predict_hoi(self,selected_dets,hoi_info):
+        # 当前图片所有human
+        # 当前图片所有hoi对应的object
+        # 直接全组合
         hoi_object = ' '.join(hoi_info['object'].split('_'))
         human_boxes = selected_dets['boxes']['person']
         human_scores = selected_dets['scores']['person']

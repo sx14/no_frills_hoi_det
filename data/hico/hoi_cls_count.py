@@ -6,6 +6,7 @@ from data.hico.hico_constants import HicoConstants
 
 
 def bin_hoi_ids(hoi_cls_count,upper_limits):
+    # 把600类HOI按照实例个数分成若干个桶
     bins = {str(ul): [] for ul in upper_limits}
     for hoi_id,count in hoi_cls_count.items():
         ll = 0
@@ -21,6 +22,7 @@ def bin_hoi_ids(hoi_cls_count,upper_limits):
 def main():
     data_const = HicoConstants()
     anno_list = io.load_json_object(data_const.anno_list_json)
+    # 计数600类HOI的实例个数
     hoi_cls_count = {}
     for anno in tqdm(anno_list):
         if 'test' in anno['global_id']:
@@ -32,6 +34,7 @@ def main():
                 hoi_cls_count[hoi_id] = 0
             hoi_cls_count[hoi_id] += len(hoi['connections'])
 
+    # 把600个HOI类别按照实例个数分成6个桶
     upper_limits = [10,50,100,500,1000,10000]
     bin_to_hoi_ids = bin_hoi_ids(hoi_cls_count,upper_limits)
 
@@ -43,4 +46,6 @@ def main():
 
 
 if __name__=='__main__':
+    # 统计600类HOI类别的实例个数，并将600个HOI类别分桶
+    # pass
     main()

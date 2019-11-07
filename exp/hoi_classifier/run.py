@@ -100,10 +100,12 @@ def exp_gen_and_label_hoi_cand():
         'selected_coco_cls_dets.hdf5')
 
     if args.gen_hoi_cand:
+        # 全组合human和object，不考虑是否命中
         print('Generating HOI candidates from Faster-RCNN dets...')
         hoi_candidates.generate(exp_const,data_const)
     
     if args.label_hoi_cand:
+        # 给上一步全组合产生的candidates标注是否命中gt
         print('Labelling HOI candidates from Faster-RCNN dets...')
         data_const.hoi_cand_hdf5 = os.path.join(
             exp_const.exp_dir,
@@ -112,6 +114,7 @@ def exp_gen_and_label_hoi_cand():
 
 
 def exp_cache_box_feats():
+    # 产生相对位置特征
     args = parser.parse_args()
     
     not_specified_args = manage_required_args(
@@ -132,6 +135,7 @@ def exp_cache_box_feats():
 
 
 def exp_assign_pose_to_human_cand():
+    # 为candidates中的所有human分配pose skeleton
     args = parser.parse_args()
     
     not_specified_args = manage_required_args(
@@ -156,6 +160,7 @@ def exp_assign_pose_to_human_cand():
 
 
 def exp_cache_pose_feats():
+
     args = parser.parse_args()
     
     not_specified_args = manage_required_args(
@@ -186,12 +191,12 @@ def exp_train():
         parser,
         required_args=['imgs_per_batch','fp_to_tp_ratio'],
         optional_args=[
-            'verb_given_appearance',
+            'verb_given_appearance',                # check
             'verb_given_human_appearance',
             'verb_given_object_appearance',
-            'verb_given_boxes_and_object_label',
-            'verb_given_human_pose',
-            'rcnn_det_prob'])
+            'verb_given_boxes_and_object_label',    # check
+            'verb_given_human_pose',                # check
+            'rcnn_det_prob'])                       # check
 
     exp_name = 'factors'
     if args.rcnn_det_prob:
@@ -219,9 +224,11 @@ def exp_train():
     exp_const.imgs_per_batch = args.imgs_per_batch
     exp_const.lr = 1e-3
 
+    # 数据集参数，主要是路径
     data_const_train = FeatureConstants(subset='train')
     data_const_val = FeatureConstants(subset='val')
 
+    # 各模块参数
     model_const = Constants()
     model_const.hoi_classifier = HoiClassifierConstants()
     model_const.hoi_classifier.verb_given_appearance = args.verb_given_appearance

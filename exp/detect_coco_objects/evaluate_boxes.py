@@ -193,7 +193,7 @@ def box_label_recall(gt_hois,human_boxes,object_boxes,object_labels,iou_thresh,h
     return stats
 
     
-def evaluate_boxes(exp_const,data_const):
+def evaluate_boxes(exp_const, data_const):
     select_boxes_dir = exp_const.exp_dir
 
     select_boxes_h5py = os.path.join(

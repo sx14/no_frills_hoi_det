@@ -6,13 +6,18 @@ import utils.io as io
 from data.hico.hico_constants import HicoConstants
 
 
-class ConvertMat2Json():
-    def __init__(self,const):
+class ConvertMat2Json:
+    """
+    标注文件格式转换
+    """
+    def __init__(self, const):
+        # 加载原始标注文件
         self.const = const
         self.anno = scio.loadmat(self.const.anno_mat)
         self.anno_bbox = scio.loadmat(self.const.anno_bbox_mat)
         
     def create_hoi_list(self):
+        # HOI类别列表，id从1开始
         num_hoi = self.anno['list_action'].shape[0]
         hoi_list = [None]*num_hoi
         for i in range(num_hoi):
@@ -66,6 +71,7 @@ class ConvertMat2Json():
         return hois
 
     def create_anno_list(self):
+        # 合并anno.mat, anno_bbox.mat
         anno_list = []
         for subset in ['train','test']:
             print(f'Adding {subset} data to anno list ...')
@@ -96,35 +102,39 @@ class ConvertMat2Json():
 
     def convert(self):
         print('Creating anno list ...')
+        # 合并anno.mat, anno_bbox.mat，所有标注信息保存为一个json文件
         anno_list = self.create_anno_list()
         io.dump_json_object(anno_list,self.const.anno_list_json)
 
         print('Creating hoi list ...')
+        # HOI类别列表，保存为一个json文件
         hoi_list = self.create_hoi_list()
         io.dump_json_object(hoi_list,self.const.hoi_list_json)
 
         print('Creating object list ...')
+        # HOI-object类别列表（600带重复）
         object_list = sorted(list(set([hoi['object'] for hoi in hoi_list])))
         for i,obj in enumerate(object_list):
             object_list[i] = {
                 'id': str(i+1).zfill(3),
                 'name': obj
             }
-        
         io.dump_json_object(object_list,self.const.object_list_json)
         
         print('Creating verb list ...')
+        # HOI-verb类别列表（600带重复）
         verb_list = sorted(list(set([hoi['verb'] for hoi in hoi_list])))
         for i,verb in enumerate(verb_list):
             verb_list[i] = {
                 'id': str(i+1).zfill(3),
                 'name': verb
             }
-        
         io.dump_json_object(verb_list,self.const.verb_list_json)
 
 
 if __name__=='__main__':
+    # 原始标注文件的格式转换，hoi-box还是维持原来的结构
+    # pass
     hico_const = HicoConstants()
     converter = ConvertMat2Json(hico_const)
     converter.convert()

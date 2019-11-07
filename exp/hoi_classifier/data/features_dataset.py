@@ -68,6 +68,7 @@ class Features(Dataset):
             self.human_pose_feat = self.load_hdf5_file(
                 self.const.human_pose_feats_hdf5)
 
+    # ==== 加载数据的函数们，不用看了 ====
     def get_anno_dict(self,anno_list_json):
         anno_list = io.load_json_object(anno_list_json)
         anno_dict = {anno['global_id']:anno for anno in anno_list}
@@ -104,20 +105,25 @@ class Features(Dataset):
     def load_subset_ids(self,subset):
         split_ids = io.load_json_object(self.const.split_ids_json)
         return sorted(split_ids[subset])
+    # ==== 加载完毕 ====
 
     def __len__(self):
+        # 图片数量
         return len(self.global_ids)
 
     def get_labels(self,global_id):
-        # hoi_idx: number in [0,599]
+        # hoi_idx: number in [0,599]，实际HOI类别编号
         hoi_cands = self.hoi_cands[global_id]
         hoi_idxs = hoi_cands['boxes_scores_rpn_ids_hoi_idx'][:,-1]
         hoi_idxs = hoi_idxs.astype(np.int)
         # label: 0/1 indicating if there was a match with any gt for that hoi
+        # negative/positive 正反例
         labels = self.hoi_cand_labels[global_id][()]
         num_cand = labels.shape[0]
+        # HOI类别的one/zero-hot编码
         hoi_label_vecs = np.zeros([num_cand,len(self.hoi_dict)])
         hoi_label_vecs[np.arange(num_cand),hoi_idxs] = labels
+        # HOI类别编号 string
         hoi_ids = [None]*num_cand
         for i in range(num_cand):
             hoi_ids[i] = str(hoi_idxs[i]+1).zfill(3)
@@ -126,7 +132,13 @@ class Features(Dataset):
     def get_faster_rcnn_prob_vecs(self,hoi_ids,human_probs,object_probs):
         num_hois = len(self.hoi_dict)
         num_cand = len(hoi_ids)
+        # human得分复制到每一个HOI类别上
+        # xxxxxxxxxxxxxxxx
+        # yyyyyyyyyyyyyyyy
         human_prob_vecs = np.tile(np.expand_dims(human_probs,1),[1,num_hois])
+        # object得分复制到对应的一部分HOI类别上
+        # 0000xxxx00000000
+        # 00000000xxxx0000
         object_prob_vecs = np.zeros([num_cand,num_hois])
         for i,hoi_id in enumerate(hoi_ids):
             obj = self.hoi_dict[hoi_id]['object']
@@ -136,6 +148,8 @@ class Features(Dataset):
         return human_prob_vecs, object_prob_vecs
 
     def sample_cands(self,hoi_labels):
+        # 以图片为单位，进行数据采样
+        # 1个正例对应1000个反例
         num_cands = hoi_labels.shape[0]
         indices = np.arange(num_cands)
         tp_ids = indices[hoi_labels==1.0]
@@ -151,6 +165,7 @@ class Features(Dataset):
         return sampled_ids
 
     def get_obj_one_hot(self,hoi_ids):
+        # 物体类别one-hot编码
         num_cand = len(hoi_ids)
         obj_one_hot = np.zeros([num_cand,len(self.obj_to_id)])
         for i, hoi_id in enumerate(hoi_ids):
@@ -160,6 +175,7 @@ class Features(Dataset):
         return obj_one_hot
 
     def get_verb_one_hot(self,hoi_ids):
+        # 动作类别one-hot编码
         num_cand = len(hoi_ids)
         verb_one_hot = np.zeros([num_cand,len(self.verb_to_id)])
         for i, hoi_id in enumerate(hoi_ids):
@@ -169,6 +185,7 @@ class Features(Dataset):
         return verb_one_hot
 
     def get_prob_mask(self,hoi_idx):
+        # HOI one-hot编码
         num_cand = len(hoi_idx)
         prob_mask = np.zeros([num_cand,len(self.hoi_dict)])
         prob_mask[np.arange(num_cand),hoi_idx] = 1.0
@@ -188,16 +205,20 @@ class Features(Dataset):
         scores_npy = os.path.join(
             self.const.faster_rcnn_boxes,
             f'{global_id}_scores.npy')
-        scores = np.load(scores_npy)
-        scores = scores[object_rpn_id,:]
+        scores = np.load(scores_npy)        # 300 * 80
+        scores = scores[object_rpn_id,:]    # N * 80
         num_hois = len(self.hoi_dict)
+        # gather_ids: hoi id -> coco obj id
         gather_ids = np.zeros([num_hois],dtype=np.int)
         for obj, obj_hoi_ids in self.obj_to_hoi_ids.items():
             obj_idx = self.obj_to_coco_id[' '.join(obj.split('_'))]
             #obj_idx = int(self.obj_to_id[obj])-1
             obj_hoi_idx = [int(v)-1 for v in obj_hoi_ids]
             gather_ids[obj_hoi_idx] = obj_idx
-        obj_prob_vec = scores[:,gather_ids]
+        obj_prob_vec = scores[:,gather_ids] # N * 600
+
+        # 每个样本在每个HOI类别上对应的物体检测置信度
+        # yyyyxxxxzzzzaaaa
         return obj_prob_vec
 
 

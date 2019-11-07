@@ -10,7 +10,7 @@ import utils.pytorch_layers as pytorch_layers
 class VerbGivenBoxesAndObjectLabelConstants(io.JsonSerializableClass):
     def __init__(self):
         super(VerbGivenBoxesAndObjectLabelConstants,self).__init__()
-        self.box_feat_size = 21
+        self.box_feat_size = 1024
         self.num_objects = 80
         self.num_verbs = 117
         self.use_object_label = True
@@ -36,6 +36,7 @@ class VerbGivenBoxesAndObjectLabel(nn.Module,io.WritableToFile):
     def __init__(self,const):
         super(VerbGivenBoxesAndObjectLabel,self).__init__()
         self.const = copy.deepcopy(const)
+
         self.mlp = pytorch_layers.create_mlp(self.const.mlp_const)
 
     def transform_feat(self,feat):

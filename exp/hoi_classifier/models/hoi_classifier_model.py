@@ -26,7 +26,7 @@ class HoiClassifierConstants(io.JsonSerializableClass):
     }
 
     def __init__(self):
-        super(HoiClassifierConstants,self).__init__()
+        super(HoiClassifierConstants, self).__init__()
         self.verb_given_appearance = True
         self.verb_given_human_appearance = True
         self.verb_given_object_appearance = True

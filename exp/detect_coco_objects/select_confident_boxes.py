@@ -11,11 +11,13 @@ from data.coco_classes import COCO_CLASSES
 def select_det_ids(boxes,scores,nms_keep_ids,score_thresh,max_dets):
     if nms_keep_ids is None:
         nms_keep_ids = np.arange(0,scores.shape[0])
-    
+
+    # NMS结果
     # Select non max suppressed dets
     nms_scores = scores[nms_keep_ids]
     nms_boxes = boxes[nms_keep_ids]
 
+    # 在NMS的基础上，用confidence过滤，保留不超过max_dets个
     # Select dets above a score_thresh and which have area > 1
     nms_ids_above_thresh = np.nonzero(nms_scores > score_thresh)[0]
     nms_ids = []
@@ -23,7 +25,8 @@ def select_det_ids(boxes,scores,nms_keep_ids,score_thresh,max_dets):
         area = compute_area(nms_boxes[i],invalid=-1)
         if area > 1:
             nms_ids.append(i)
-        
+
+    # 如果上一步没有得到det，这一步补一个
     # If no dets satisfy previous criterion select the highest ranking one with area > 1
     if len(nms_ids)==0:
         for i in range(nms_keep_ids.shape[0]):
@@ -48,14 +51,19 @@ def select_dets(
         nms_keep_indices,
         exp_const):
     selected_dets = []
-    
+
+    # 每张图的detections顺序存放
+    # start_end_ids用class_id索引当前类别的detection id范围
     start_end_ids = np.zeros([len(COCO_CLASSES),2],dtype=np.int32)
     start_id = 0
+
     for cls_ind, cls_name in enumerate(COCO_CLASSES):
+        # 每个类别 分别处理
         cls_boxes = boxes[:, 4*cls_ind:4*(cls_ind + 1)]
         cls_scores = scores[:, cls_ind]
         cls_nms_keep_ids = np.array(nms_keep_indices[cls_ind])
 
+        # 人、物、背景 分别处理
         if cls_name=='person':
             select_ids = select_det_ids(
                 cls_boxes,
@@ -77,7 +85,8 @@ def select_dets(
                 cls_nms_keep_ids,
                 exp_const.object_score_thresh,
                 exp_const.max_objects_per_class)
-                
+
+        # 保存了：box + score + id_of_300box
         boxes_scores_rpn_id = np.concatenate((
             cls_boxes[select_ids],
             np.expand_dims(cls_scores[select_ids],1),
@@ -135,7 +144,10 @@ def select(exp_const,data_const):
 
         selected_dets, start_end_ids = select_dets(boxes,scores,nms_keep_indices,exp_const)
         f.create_group(global_id)
+
+        # box, score, id_of_300box
         f[global_id].create_dataset('boxes_scores_rpn_ids',data=selected_dets)
+        # class_id -> 该类别detection在boxes_scores_rpn_ids的起止行数
         f[global_id].create_dataset('start_end_ids',data=start_end_ids)
         
     f.close()

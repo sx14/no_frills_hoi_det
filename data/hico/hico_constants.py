@@ -4,6 +4,10 @@ import utils.io as io
 
 
 class HicoConstants(io.JsonSerializableClass):
+    """
+    所有路径信息
+    """
+
     def __init__(
             self,
             clean_dir=os.path.join(os.getcwd(),'data_symlinks/hico_clean'),
